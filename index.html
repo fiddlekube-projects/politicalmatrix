@@ -75,6 +75,32 @@
     <div id="tooltip">
         <h3 id="tt-title" class="text-lg font-bold text-white mb-1">Ideology Name</h3>
         <p id="tt-desc" class="text-sm text-slate-300 leading-snug">Description goes here.</p>
+        <button id="tt-detail-toggle" class="tt-detail-toggle">
+            <span>Breakdown</span>
+            <svg id="tt-detail-icon" class="tt-detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+        <div id="tt-detail" class="tt-detail hidden">
+            <div class="tt-axis-row">
+                <span class="tt-axis-dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444"></span>
+                <div><span class="tt-axis-label">Economy</span>
+                    <p id="tt-econ-detail" class="tt-axis-text"></p>
+                </div>
+            </div>
+            <div class="tt-axis-row">
+                <span class="tt-axis-dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e"></span>
+                <div><span class="tt-axis-label">Authority</span>
+                    <p id="tt-auth-detail" class="tt-axis-text"></p>
+                </div>
+            </div>
+            <div class="tt-axis-row">
+                <span class="tt-axis-dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6"></span>
+                <div><span class="tt-axis-label">Social</span>
+                    <p id="tt-soc-detail" class="tt-axis-text"></p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="data.js"></script>

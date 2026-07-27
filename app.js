@@ -250,16 +250,67 @@ function updateTooltipPosition(event) {
     tooltip.style.top = y + 'px';
 }
 
+function positionTooltip(sphereScreenX, sphereScreenY) {
+    const margin = 14;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+
+    // Try placing above the sphere; fall back to below if not enough room
+    let left = sphereScreenX - tw / 2;
+    let top = sphereScreenY - th - margin;
+
+    if (top < margin) {
+        top = sphereScreenY + margin;
+    }
+
+    // Clamp horizontally within viewport
+    left = Math.max(margin, Math.min(window.innerWidth - tw - margin, left));
+    // Clamp vertically within viewport
+    top = Math.max(margin, Math.min(window.innerHeight - th - margin, top));
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
 function showTooltip(data, event) {
     document.getElementById('tt-title').innerText = data.name;
-
     document.getElementById('tt-desc').innerText = data.desc;
 
-    const screenPos = selectedSphere.position.clone().project(camera);
-    tooltip.style.left = (screenPos.x * 0.5 + 0.5) * window.innerWidth + 'px';
-    tooltip.style.top = (-screenPos.y * 0.5 + 0.5) * window.innerHeight + 'px';
+    document.getElementById('tt-econ-detail').innerText = data.detail.economy;
+    document.getElementById('tt-auth-detail').innerText = data.detail.authority;
+    document.getElementById('tt-soc-detail').innerText = data.detail.social;
+
+    // Collapse detail section on each new selection
+    const detail = document.getElementById('tt-detail');
+    const icon = document.getElementById('tt-detail-icon');
+    detail.classList.add('hidden');
+    icon.classList.remove('open');
+    tooltip.classList.remove('expanded');
+
     tooltip.style.opacity = 1;
+
+    const screenPos = selectedSphere.position.clone().project(camera);
+    const sx = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+    positionTooltip(sx, sy);
 }
+
+document.getElementById('tt-detail-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const detail = document.getElementById('tt-detail');
+    const icon = document.getElementById('tt-detail-icon');
+    detail.classList.toggle('hidden');
+    icon.classList.toggle('open');
+    const isOpen = !detail.classList.contains('hidden');
+    if (isOpen) {
+        // Wait for layout, then only enable scroll if content genuinely overflows
+        requestAnimationFrame(() => {
+            tooltip.classList.toggle('expanded', tooltip.scrollHeight > tooltip.clientHeight);
+        });
+    } else {
+        tooltip.classList.remove('expanded');
+    }
+});
 
 function hideTooltip() {
     tooltip.style.opacity = 0;
@@ -340,8 +391,9 @@ function animate() {
 
     if (selectedSphere && tooltip.style.opacity === '1') {
         const screenPos = selectedSphere.position.clone().project(camera);
-        tooltip.style.left = (screenPos.x * 0.5 + 0.5) * window.innerWidth + 'px';
-        tooltip.style.top = (-screenPos.y * 0.5 + 0.5) * window.innerHeight + 'px';
+        const sx = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+        positionTooltip(sx, sy);
     }
 
     controls.update();
