@@ -348,6 +348,57 @@ function onMouseMove(event) {
     }
 }
 
+// Touch tap detection for mobile (OrbitControls consumes touch events, preventing click)
+let touchStartPos = null;
+let touchStartTime = 0;
+
+container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchStartTime = Date.now();
+    }
+}, { passive: true });
+
+container.addEventListener('touchend', (e) => {
+    if (!touchStartPos) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartPos.x;
+    const dy = touch.clientY - touchStartPos.y;
+    const dt = Date.now() - touchStartTime;
+    touchStartPos = null;
+
+    // Only treat as a tap if short duration and minimal movement
+    if (dt < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+        handleTap(touch.clientX, touch.clientY);
+    }
+});
+
+function handleTap(clientX, clientY) {
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(spheres);
+
+    if (intersects.length > 0) {
+        const object = intersects[0].object;
+
+        if (selectedSphere) {
+            selectedSphere.scale.set(1, 1, 1);
+        }
+
+        selectedSphere = object;
+        selectedSphere.scale.set(2, 2, 2);
+        showTooltip(selectedSphere.userData, null);
+    } else {
+        if (selectedSphere) {
+            selectedSphere.scale.set(1, 1, 1);
+            selectedSphere = null;
+        }
+        hideTooltip();
+    }
+}
+
 window.addEventListener('click', onClick, false);
 function onClick(event) {
     // Update mouse from click/tap position (essential for mobile where mousemove doesn't fire)
