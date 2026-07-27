@@ -288,6 +288,7 @@ function showTooltip(data, event) {
     tooltip.classList.remove('expanded');
 
     tooltip.style.opacity = 1;
+    tooltip.style.pointerEvents = 'auto';
 
     const screenPos = selectedSphere.position.clone().project(camera);
     const sx = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
@@ -314,6 +315,7 @@ document.getElementById('tt-detail-toggle').addEventListener('click', (e) => {
 
 function hideTooltip() {
     tooltip.style.opacity = 0;
+    tooltip.style.pointerEvents = 'none';
 }
 
 window.addEventListener('mousemove', onMouseMove, false);
