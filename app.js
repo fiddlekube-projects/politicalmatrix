@@ -350,6 +350,10 @@ function onMouseMove(event) {
 
 window.addEventListener('click', onClick, false);
 function onClick(event) {
+    // Update mouse from click/tap position (essential for mobile where mousemove doesn't fire)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(spheres);
 
