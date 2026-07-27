@@ -83,12 +83,12 @@ function createAxisLabel(text, color) {
 const spheres = [];
 const labels = [];
 
-const xLabelRight = createAxisLabel("Economic Right", "#ef4444");
+const xLabelRight = createAxisLabel("Free Market", "#ef4444");
 xLabelRight.position.set(axisLength + 20, 0, 0);
 scene.add(xLabelRight);
 labels.push(xLabelRight);
 
-const xLabelLeft = createAxisLabel("Economic Left", "#ef4444");
+const xLabelLeft = createAxisLabel("Regulated Market", "#ef4444");
 xLabelLeft.position.set(-axisLength - 20, 0, 0);
 scene.add(xLabelLeft);
 labels.push(xLabelLeft);
@@ -103,12 +103,12 @@ yLabelBottom.position.set(0, -axisLength - 10, 0);
 scene.add(yLabelBottom);
 labels.push(yLabelBottom);
 
-const zLabelFront = createAxisLabel("Social Progressive", "#3b82f6");
+const zLabelFront = createAxisLabel("Progressive", "#3b82f6");
 zLabelFront.position.set(0, 0, axisLength + 20);
 scene.add(zLabelFront);
 labels.push(zLabelFront);
 
-const zLabelBack = createAxisLabel("Social Conservative", "#3b82f6");
+const zLabelBack = createAxisLabel("Conservative", "#3b82f6");
 zLabelBack.position.set(0, 0, -axisLength - 20);
 scene.add(zLabelBack);
 labels.push(zLabelBack);
