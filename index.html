@@ -19,16 +19,17 @@
     <div id="canvas-container"></div>
 
     <div id="ui-layer">
-        <header class="p-6 flex justify-between items-start">
+        <header class="p-4 sm:p-6 flex flex-col sm:flex-row sm:justify-between items-start gap-3">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-md">Where do you stand?
+                <h1 class="text-xl sm:text-3xl font-bold tracking-tight text-white drop-shadow-md">Where do you stand?
                 </h1>
-                <p class="text-slate-300 mt-2 max-w-md drop-shadow">Explore how different political ideologies compare
-                    across economics, social values, and authority; all in one interactive 3D space.</p>
+                <p class="text-slate-300 mt-1 sm:mt-2 text-sm sm:text-base max-w-md drop-shadow">Explore how different
+                    political ideologies compare
+                    across economics, social values, and authority.</p>
             </div>
 
             <div
-                class="pointer-events-auto bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl text-sm shadow-xl min-w-[280px] overflow-hidden transition-all duration-300">
+                class="pointer-events-auto bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl text-sm shadow-xl w-full sm:w-auto sm:min-w-[280px] overflow-hidden transition-all duration-300">
                 <button id="legend-toggle"
                     class="w-full flex justify-between items-center p-4 font-bold text-slate-100 hover:bg-slate-700/80 transition-colors focus:outline-none">
                     <span>Axes & Controls Guide</span>
@@ -58,16 +59,19 @@
                     </ul>
                     <div
                         class="mt-4 text-xs text-slate-400 italic bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 leading-relaxed">
-                        • Left-click + drag to rotate<br>
-                        • Scroll to zoom<br>
-                        • Right-click + drag to pan<br>
-                        • Click spheres for info
+                        <span class="hidden sm:inline">• Left-click + drag to rotate<br>
+                            • Scroll to zoom<br>
+                            • Right-click + drag to pan<br></span>
+                        <span class="sm:hidden">• One finger drag to rotate<br>
+                            • Pinch to zoom<br>
+                            • Two finger drag to pan<br></span>
+                        • Tap/click spheres for info
                     </div>
                 </div>
             </div>
         </header>
 
-        <div class="p-6 flex justify-center pointer-events-auto">
+        <div class="p-4 sm:p-6 flex justify-center pointer-events-auto">
             <button id="reset-btn"
                 class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-6 rounded-full transition-colors shadow-lg border border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900">
                 Reset View
