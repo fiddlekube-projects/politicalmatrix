@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Political Ideology Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Let clicks pass through to canvas by default */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.95);
+            /* Slate 800 */
+            border: 1px solid #334155;
+            /* Slate 700 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-width: 300px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out, transform 0.1s ease;
+            transform: translate(-50%, -120%);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+
+        #tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: rgba(30, 41, 59, 0.95) transparent transparent transparent;
+        }
+
+        .axis-label {
+            color: #94a3b8;
+            /* Slate 400 */
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <header class="p-6 flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-md">Political Ideologies Space</h1>
+                <p class="text-slate-300 mt-2 max-w-md drop-shadow">A 3D mapping of political ideologies based on
+                    Economic, Social, and Authority dimensions.</p>
+            </div>
+
+            <div
+                class="pointer-events-auto bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl text-sm shadow-xl min-w-[280px] overflow-hidden transition-all duration-300">
+                <button id="legend-toggle"
+                    class="w-full flex justify-between items-center p-4 font-bold text-slate-100 hover:bg-slate-700/80 transition-colors focus:outline-none">
+                    <span>Axes & Controls Guide</span>
+                    <svg id="legend-icon" class="w-5 h-5 transform transition-transform duration-300 rotate-180"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="legend-content" class="px-4 pb-4">
+                    <div class="border-t border-slate-600 pt-3 mb-3"></div>
+                    <ul class="space-y-3">
+                        <li class="flex items-start"><span
+                                class="w-3 h-3 rounded-full bg-red-500 mr-3 mt-1 shadow-[0_0_8px_rgba(239,68,68,0.6)] flex-shrink-0"></span>
+                            <span><b>X (Red):</b><br><span class="text-slate-300 text-xs">Economic (Left &rarr;
+                                    Right)</span></span></li>
+                        <li class="flex items-start"><span
+                                class="w-3 h-3 rounded-full bg-green-500 mr-3 mt-1 shadow-[0_0_8px_rgba(34,197,94,0.6)] flex-shrink-0"></span>
+                            <span><b>Y (Green):</b><br><span class="text-slate-300 text-xs">Authority (Lib &rarr;
+                                    Auth)</span></span></li>
+                        <li class="flex items-start"><span
+                                class="w-3 h-3 rounded-full bg-blue-500 mr-3 mt-1 shadow-[0_0_8px_rgba(59,130,246,0.6)] flex-shrink-0"></span>
+                            <span><b>Z (Blue):</b><br><span class="text-slate-300 text-xs">Social (Prog &rarr;
+                                    Cons)</span></span></li>
+                    </ul>
+                    <div
+                        class="mt-4 text-xs text-slate-400 italic bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 leading-relaxed">
+                        • Left-click + drag to rotate<br>
+                        • Scroll to zoom<br>
+                        • Right-click + drag to pan<br>
+                        • Click spheres for info
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-6 flex justify-center pointer-events-auto">
+            <button id="reset-btn"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-6 rounded-full transition-colors shadow-lg border border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900">
+                Reset View
+            </button>
+        </div>
+    </div>
+
+    <div id="tooltip">
+        <h3 id="tt-title" class="text-lg font-bold text-white mb-1">Ideology Name</h3>
+        <div class="flex gap-2 mb-2 text-xs font-mono text-slate-300">
+            <span class="bg-slate-700 px-1.5 py-0.5 rounded" id="tt-econ">E: 0</span>
+            <span class="bg-slate-700 px-1.5 py-0.5 rounded" id="tt-auth">A: 0</span>
+            <span class="bg-slate-700 px-1.5 py-0.5 rounded" id="tt-soc">S: 0</span>
+        </div>
+        <p id="tt-desc" class="text-sm text-slate-300 leading-snug">Description goes here.</p>
+    </div>
+
+    <script>
+        const ideologiesData = [
+            { name: "Anarchism", econ: -70, soc: 60, auth: -100, desc: "Believes all forms of hierarchical rule, especially the state, are unjust and unnecessary; wants society organized through voluntary cooperation instead of governments or bosses." },
+            { name: "Anarcho-Communism", econ: -95, soc: 60, auth: -100, desc: "A stateless, classless society where property is owned collectively and goods are distributed based on need rather than money or markets." },
+            { name: "Anarcho-Syndicalism", econ: -85, soc: 50, auth: -90, desc: "Workers organize into unions and run industries themselves through direct democratic councils, replacing both capitalist bosses and government bureaucracy." },
+            { name: "Mutualism", econ: -40, soc: 40, auth: -90, desc: "Supports small-scale markets and worker cooperatives where people trade fairly without exploitation, while rejecting large centralized states or corporations." },
+            { name: "Individualist Anarchism", econ: 10, soc: 40, auth: -100, desc: "Prioritizes personal freedom and self-ownership above all, opposing any coercive authority while often being comfortable with private property and free exchange." },
+            { name: "Communism", econ: -100, soc: 20, auth: 80, desc: "Calls for collective ownership of all productive property, typically achieved and maintained through a strong, centralized one-party state controlling the economy." },
+            { name: "Democratic Socialism", econ: -70, soc: 40, auth: -20, desc: "Seeks to replace capitalism with democratic social ownership of the economy, but through elections and civil liberties rather than revolution or authoritarian rule." },
+            { name: "Social Democracy", econ: -40, soc: 30, auth: -10, desc: "Keeps a market economy but uses heavy taxation and regulation to fund strong welfare states, public healthcare, and education — the dominant Nordic/continental European model." },
+            { name: "Green Politics", econ: -50, soc: 80, auth: -20, desc: "Centers environmental sustainability and ecological limits, usually paired with social justice, feminism, and grassroots participatory decision-making." },
+            { name: "Social Liberalism", econ: -20, soc: 70, auth: -30, desc: "Combines strong protection of individual civil liberties and personal freedoms with support for a moderate welfare state to ensure fair opportunity." },
+            { name: "Classical Liberalism", econ: 40, soc: 40, auth: -50, desc: "Emphasizes private property, free markets, and the rule of law, with government limited mainly to protecting individual rights rather than managing the economy." },
+            { name: "Neoliberalism", econ: 80, soc: 20, auth: 10, desc: "Favors deregulation, privatization of public services, and free trade as the best path to economic growth, often reducing the state's role in the economy." },
+            { name: "Libertarianism", econ: 60, soc: 50, auth: -80, desc: "Wants a very small government focused only on protecting basic rights, letting free markets and voluntary exchange handle almost everything else in society." },
+            { name: "Minarchism", econ: 70, soc: 40, auth: -70, desc: "Supports a \"night-watchman\" state limited strictly to policing, courts, and national defense, with virtually no economic intervention." },
+            { name: "Anarcho-Capitalism", econ: 100, soc: 40, auth: -100, desc: "Argues even police, courts, and defense should be privatized, replacing the state entirely with competing private businesses and contracts." },
+            { name: "Conservatism", econ: 30, soc: -60, auth: 20, desc: "Values preserving traditional institutions, customs, and social order, favoring gradual reform over rapid or radical change." },
+            { name: "Christian Democracy", econ: 10, soc: -20, auth: 10, desc: "A moderate, mainstream European tradition blending free markets with a strong welfare safety net, guided loosely by Christian social ethics." },
+            { name: "Religious Conservatism", econ: 40, soc: -90, auth: 40, desc: "Believes law and public life should be strongly shaped by traditional religious morality, often restricting personal freedoms seen as conflicting with faith." },
+            { name: "Nationalism", econ: 40, soc: -70, auth: 60, desc: "Puts the nation's unity, sovereignty, and cultural identity above other concerns, often skeptical of immigration or supranational institutions like the EU." },
+            { name: "Right-Wing Populism", econ: 40, soc: -80, auth: 70, desc: "Positions itself against \"corrupt elites\" and immigration, appealing to ordinary citizens' grievances with strong nationalist and traditionalist rhetoric." },
+            { name: "Fascism", econ: 40, soc: -80, auth: 100, desc: "An ultra-nationalist, militaristic ideology demanding total loyalty to the state or leader, merging government and big business (corporatism) and crushing dissent." },
+            { name: "National Socialism", econ: 20, soc: -90, auth: 100, desc: "Nazism — a totalitarian, racially exclusionary ideology combining extreme nationalism with state control and violent suppression of opposition." },
+            { name: "Third Position", econ: -20, soc: -80, auth: 90, desc: "A far-right ideology that rejects both capitalism and communism, mixing anti-globalist economics with strongly traditionalist, authoritarian cultural politics." },
+            { name: "Centrism", econ: 0, soc: 0, auth: 0, desc: "Avoids strong ideological commitments, favoring pragmatic compromise between left and right on most economic and social questions." },
+            { name: "Technocracy", econ: 20, soc: 10, auth: 40, desc: "Believes decisions should be made by scientific and technical experts rather than elected politicians or ideological debate." },
+            { name: "Constitutional Monarchism", econ: 20, soc: -40, auth: 40, desc: "Supports keeping a hereditary king or queen as head of state, but with real power held by an elected, democratic parliament." },
+            { name: "Absolute Monarchism", econ: 30, soc: -60, auth: 80, desc: "Believes a hereditary monarch should hold near-total, unchecked political power over the state." },
+            { name: "Left-Libertarianism", econ: -70, soc: 60, auth: -80, desc: "Combines socialist or cooperative economics with strong personal freedoms and civil liberties, rejecting both capitalist and authoritarian control." }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        const scene = new THREE.Scene();
+        // Add a subtle fog to give depth
+        scene.fog = new THREE.FogExp2(0x0f172a, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600;
+        controls.minDistance = 50;
+
+        // Scale factor to translate -100 to 100 ranges into 3D space coordinates
+        const scale = 1.5;
+
+        const gridHelperX = new THREE.GridHelper(300, 10, 0x334155, 0x1e293b);
+        gridHelperX.position.y = -150; // Place grid at bottom of Authority axis
+        scene.add(gridHelperX);
+
+        // Custom Axes
+        const axisLength = 160;
+
+        // X Axis (Economic: Left - Right) -> RED
+        const xMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 });
+        const xGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-axisLength, 0, 0),
+            new THREE.Vector3(axisLength, 0, 0)
+        ]);
+        const xAxis = new THREE.Line(xGeo, xMat);
+        scene.add(xAxis);
+
+        // Y Axis (Authority: Lib - Auth) -> GREEN
+        const yMat = new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 2 });
+        const yGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -axisLength, 0),
+            new THREE.Vector3(0, axisLength, 0)
+        ]);
+        const yAxis = new THREE.Line(yGeo, yMat);
+        scene.add(yAxis);
+
+        // Z Axis (Social: Prog - Cons) -> BLUE (Note: in Three.js, -Z is forward/away from camera)
+        // We map Social: High (Progressive) to +Z, Low (Conservative) to -Z
+        const zMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 });
+        const zGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, -axisLength),
+            new THREE.Vector3(0, 0, axisLength)
+        ]);
+        const zAxis = new THREE.Line(zGeo, zMat);
+        scene.add(zAxis);
+
+        // Axis Labels
+        function createAxisLabel(text, color) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+
+            context.font = "bold 28px 'Inter', sans-serif";
+            context.fillStyle = color;
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.shadowColor = "rgba(0,0,0,0.8)";
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(40, 10, 1);
+            return sprite;
+        }
+
+        const spheres = [];
+        const labels = [];
+
+        const xLabelRight = createAxisLabel("Economic Right", "#ef4444");
+        xLabelRight.position.set(axisLength + 20, 0, 0);
+        scene.add(xLabelRight);
+        labels.push(xLabelRight);
+
+        const xLabelLeft = createAxisLabel("Economic Left", "#ef4444");
+        xLabelLeft.position.set(-axisLength - 20, 0, 0);
+        scene.add(xLabelLeft);
+        labels.push(xLabelLeft);
+
+        const yLabelTop = createAxisLabel("Authoritarian", "#22c55e");
+        yLabelTop.position.set(0, axisLength + 10, 0);
+        scene.add(yLabelTop);
+        labels.push(yLabelTop);
+
+        const yLabelBottom = createAxisLabel("Libertarian", "#22c55e");
+        yLabelBottom.position.set(0, -axisLength - 10, 0);
+        scene.add(yLabelBottom);
+        labels.push(yLabelBottom);
+
+        const zLabelFront = createAxisLabel("Social Progressive", "#3b82f6");
+        zLabelFront.position.set(0, 0, axisLength + 20);
+        scene.add(zLabelFront);
+        labels.push(zLabelFront);
+
+        const zLabelBack = createAxisLabel("Social Conservative", "#3b82f6");
+        zLabelBack.position.set(0, 0, -axisLength - 20);
+        scene.add(zLabelBack);
+        labels.push(zLabelBack);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(100, 200, 100);
+        scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0x818cf8, 1, 500);
+        pointLight.position.set(-100, -100, -100);
+        scene.add(pointLight);
+
+        // Create a canvas for text sprites
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 512; // High res for crisp text
+            canvas.height = 128;
+
+            context.font = "bold 40px 'Inter', sans-serif";
+            const textWidth = context.measureText(message).width;
+
+            context.fillStyle = "rgba(0, 0, 0, 0)"; // Transparent bg
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillStyle = "#ffffff";
+            context.shadowColor = "rgba(0,0,0,0.8)";
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            context.fillText(message, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // Scale sprite to look good
+            sprite.scale.set(40, 10, 1);
+            return sprite;
+        }
+
+        const sphereGeometry = new THREE.SphereGeometry(3.5, 32, 32);
+
+        ideologiesData.forEach(item => {
+            // Determine color based on general quadrant/positioning for visual flair
+            // Mixing colors based on normalized coordinates (0 to 1)
+            const r = (item.econ + 100) / 200; // Red for Economic Right
+            const g = (item.auth + 100) / 200; // Green for Authoritarian
+            const b = (item.soc + 100) / 200;  // Blue for Social Progressive
+
+            // Adjust colors slightly to avoid pure muddy gray in center, keep it vibrant
+            const color = new THREE.Color().setRGB(
+                0.2 + r * 0.8,
+                0.2 + g * 0.8,
+                0.2 + b * 0.8
+            );
+
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                shininess: 80,
+                specular: 0x444444
+            });
+
+            const mesh = new THREE.Mesh(sphereGeometry, material);
+
+            // Mapping:
+            // X: Economic (-100 Left to 100 Right)
+            // Y: Authority (-100 Lib to 100 Auth)
+            // Z: Social (We'll map +100 Progressive to +Z, -100 Conservative to -Z)
+
+            mesh.position.set(
+                item.econ * scale,
+                item.auth * scale,
+                item.soc * scale
+            );
+
+            // Store data on mesh for raycaster
+            mesh.userData = item;
+
+            scene.add(mesh);
+            spheres.push(mesh);
+
+            // Add text label below sphere
+            const label = createTextSprite(item.name);
+            label.position.copy(mesh.position);
+            label.position.y -= 7; // offset below
+            scene.add(label);
+            labels.push(label);
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredSphere = null;
+        let selectedSphere = null;
+
+        // Set initial camera position
+        function resetCamera() {
+            camera.position.set(200, 150, 250);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            hideTooltip();
+            if (selectedSphere) {
+                selectedSphere.scale.set(1, 1, 1);
+                selectedSphere = null;
+            }
+        }
+        resetCamera();
+
+        document.getElementById('reset-btn').addEventListener('click', resetCamera);
+
+        const legendToggle = document.getElementById('legend-toggle');
+        const legendContent = document.getElementById('legend-content');
+        const legendIcon = document.getElementById('legend-icon');
+
+        legendToggle.addEventListener('click', () => {
+            legendContent.classList.toggle('hidden');
+            legendIcon.classList.toggle('rotate-180');
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updateTooltipPosition(event) {
+            // Keep tooltip within bounds
+            let x = event.clientX;
+            let y = event.clientY;
+
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        }
+
+        function showTooltip(data, event) {
+            document.getElementById('tt-title').innerText = data.name;
+
+            // Format labels for axes
+            const econLabel = data.econ < 0 ? `Left ${Math.abs(data.econ)}` : (data.econ > 0 ? `Right ${data.econ}` : 'Center 0');
+            const authLabel = data.auth < 0 ? `Lib ${Math.abs(data.auth)}` : (data.auth > 0 ? `Auth ${data.auth}` : 'Center 0');
+            const socLabel = data.soc < 0 ? `Cons ${Math.abs(data.soc)}` : (data.soc > 0 ? `Prog ${data.soc}` : 'Center 0');
+
+            document.getElementById('tt-econ').innerText = `Econ: ${econLabel}`;
+            document.getElementById('tt-auth').innerText = `Auth: ${authLabel}`;
+            document.getElementById('tt-soc').innerText = `Soc: ${socLabel}`;
+
+            document.getElementById('tt-desc').innerText = data.desc;
+
+            updateTooltipPosition(event);
+            tooltip.style.opacity = 1;
+        }
+
+        function hideTooltip() {
+            tooltip.style.opacity = 0;
+        }
+
+        window.addEventListener('mousemove', onMouseMove, false);
+        function onMouseMove(event) {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (tooltip.style.opacity === '1') {
+                updateTooltipPosition(event);
+            }
+
+            // Raycast for hover effect
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(spheres);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+
+                if (hoveredSphere !== object) {
+                    if (hoveredSphere && hoveredSphere !== selectedSphere) {
+                        hoveredSphere.scale.set(1, 1, 1); // Reset previous
+                    }
+                    hoveredSphere = object;
+                    if (hoveredSphere !== selectedSphere) {
+                        hoveredSphere.scale.set(1.5, 1.5, 1.5); // Enlarge on hover
+                    }
+                    container.style.cursor = 'pointer';
+                }
+            } else {
+                if (hoveredSphere && hoveredSphere !== selectedSphere) {
+                    hoveredSphere.scale.set(1, 1, 1);
+                }
+                hoveredSphere = null;
+                container.style.cursor = 'default';
+            }
+        }
+
+        window.addEventListener('click', onClick, false);
+        function onClick(event) {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(spheres);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+
+                // Reset previously selected
+                if (selectedSphere) {
+                    selectedSphere.scale.set(1, 1, 1);
+                }
+
+                selectedSphere = object;
+                selectedSphere.scale.set(2, 2, 2); // Enlarge selected more
+
+                showTooltip(selectedSphere.userData, event);
+
+                // Optional: Animate camera slightly towards selected object (simplified)
+                // controls.target.copy(selectedSphere.position);
+            } else {
+                // Clicked on empty space
+                if (selectedSphere) {
+                    selectedSphere.scale.set(1, 1, 1);
+                    selectedSphere = null;
+                }
+                hideTooltip();
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Optional: gently rotate the whole scene if no interaction
+            // scene.rotation.y += 0.001;
+
+            // Make text labels always face camera
+            labels.forEach(label => {
+                label.quaternion.copy(camera.quaternion);
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Start loop
+        window.onload = function () {
+            animate();
+        };
+
+    </script>
+</body>
+
+</html>
